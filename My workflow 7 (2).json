@@ -1,0 +1,264 @@
+{
+  "name": "My workflow 7",
+  "nodes": [
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.6-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.6-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an expert multi-lingual sentiment analyzer. \nAnalyze the customer feedback provided below and respond ONLY with a valid JSON object. Do not include any extra introductory text, markdown formatting like ```json, or explanations outside the JSON object.\n\nJSON Structure to follow:\n{\n  \"original_language\": \"Language of the feedback\",\n  \"english_translation\": \"Full translation in English\",\n  \"sentiment\": \"Positive, Neutral, or Negative\",\n  \"sentiment_score\": \"Score between -1.0 (very negative) to +1.0 (very positive)\",\n  \"category\": \"Category like Product, Service, UI/UX, Pricing, Delivery, or General\",\n  \"summary\": \"A 1-sentence summary of the main point in English\"\n}\n\nCustomer Feedback Text:{{ $json.Name }}\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Google Gemini AI",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        80,
+        80
+      ],
+      "id": "06b0ffbb-2504-4013-9180-5dc0592d22e5",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "RzoC4bOD0LqrTbsX",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "models/gemini-3-flash-preview"
+        },
+        "messages": {
+          "values": [
+            {}
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGeminiTool",
+      "typeVersion": 1.2,
+      "position": [
+        152,
+        312
+      ],
+      "id": "0984dbfb-6a4e-4bab-8d45-22a6cd71c405",
+      "name": "Message a model in Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "RzoC4bOD0LqrTbsX",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        80
+      ],
+      "id": "716290bc-16f8-49ac-814f-232ea71f7c0b",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ababf374-5dc1-4dab-bd08-6aba1f809e96",
+              "name": "Name",
+              "value": "The food quality was very good, but I had to arrange for the delivery myself.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -144,
+        80
+      ],
+      "id": "56ff6b40-d9fa-40e2-9484-cd349b91464e",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "chatId": "7308051164",
+        "text": "={{ $json.content.parts[0].text }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        944,
+        80
+      ],
+      "id": "77332056-26f1-49c3-9f27-6e7bb5935a49",
+      "name": "Send a text message",
+      "webhookId": "07d7efb1-6631-4b44-a459-c5ce70e5ee3b",
+      "credentials": {
+        "telegramApi": {
+          "id": "io8eoo7elo9F16hP",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n  try {\n    // জেমিনি থেকে আসা র ডেটা বা টেক্সট নেওয়া\n    let rawText = item.json.text || JSON.stringify(item.json);\n    \n    // টেক্সট পরিষ্কার করে প্রপার জেসন এ রূপান্তর\n    rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();\n    const parsedData = JSON.parse(rawText);\n    \n    // নতুন ফিল্ড যুক্ত করা যা পরবর্তীতে If নোডে ব্যবহার করা যাবে\n    item.json.sentiment = parsedData.sentiment;\n  } catch (error) {\n    item.json.sentiment = \"Unknown\";\n  }\n}\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        80
+      ],
+      "id": "3ac86857-4e24-40ba-ac30-ec5f04e2f096",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "474b1359-2181-4e19-8233-695a41889f97",
+              "leftValue": "{{ $json.sentiment}}",
+              "rightValue": "Negative",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        656,
+        80
+      ],
+      "id": "ea78111d-caa0-4807-91d1-e677839d8c96",
+      "name": "If"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini AI": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model in Google Gemini": {
+      "ai_tool": [
+        [
+          {
+            "node": "Google Gemini AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Google Gemini AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        []
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c2b12d51-ec2c-4d94-a89f-0eb23082befd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3b7ae8f1855a85045ca03daa6907b47269b10b9bf93f04db66d0ea7fe6575016"
+  },
+  "nodeGroups": [],
+  "id": "jVBqE4DiFxwtJPyp",
+  "tags": []
+}
